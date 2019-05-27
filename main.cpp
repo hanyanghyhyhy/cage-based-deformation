@@ -20,8 +20,7 @@
 
 double EPSILON = 1.0e-19;
 //Eigen::MatrixXd headPointsCage, tailPointsCage, headPointsCageDF, tailPointsCageDF;
-Eigen::MatrixXd mvcWeights1;
-Eigen::MatrixXd mvcWeights2;
+Eigen::MatrixXd mvcWeights1,mvcWeights2,mvcWeights3;
 
 Eigen::MatrixXd operator*(const Eigen::MatrixXd & weights, Eigen::MatrixXd & cageVetex);
 
@@ -272,16 +271,17 @@ Eigen::MatrixXd operator*(const Eigen::MatrixXd &weights, Eigen::MatrixXd &cageV
 
 int main(int argc, char *argv[]) {
 
-    std::string modelPath1 = "../meshes/Beast.off";
-    std::string cagePath1 = "../meshes/Beast_Cage.off";
-    std::string dfPath1 = "../meshes/Beast_Cage_Deformed.off";
-    std::string modePath2 = "../meshes/Bench.obj";
-    std::string cagePath2 = "../meshes/Bench_Cage.obj";
-    std::string dfPath2 = "../meshes/Bench_Cage_deformed.obj";
-    std::string modelPath3 = "../meshes/cactus.obj";
-    std::string cagePath3 = "../meshes/cactus_cage.onj";
+    std::string modelPath1 = "../meshes/beast.off";
+    std::string cagePath1 = "../meshes/beast_cage.off";
+    std::string dfPath1 = "../meshes/beast_cage_deformed.off";
+    std::string modelPath2 = "../meshes/bench.off";
+    std::string cagePath2 = "../meshes/bench_cage.off";
+    std::string dfPath2 = "../meshes/bench_cage_deformed.off";
+    std::string modelPath3 = "../meshes/cactus.off";
+    std::string cagePath3 = "../meshes/cactus_cage.off";
+    std::string dfPath3 = "../meshes/cactus_cage_deformed.off";
 
-    // load the model
+    // load the model 1
     TargetModel targetModel1 = TargetModel(modelPath1);
     ControlCage controlCage1 = ControlCage(cagePath1);
     // Calculate the weight in advance to exoedite the computation
@@ -291,6 +291,27 @@ int main(int argc, char *argv[]) {
     deformedCage1.loadCage();
     controlCage1.loadCage();
 
+    // load the model 2
+    TargetModel targetModel2 = TargetModel(modelPath2);
+    ControlCage controlCage2 = ControlCage(cagePath2);
+    // Calculate the weight in advance to exoedite the computation
+    mvcWeights2 = computeWeight(targetModel2.m_V, controlCage2.m_V, controlCage2.m_F);
+    ControlCage deformedCage2 = ControlCage(dfPath2);
+    Eigen::MatrixXd updatedVertex2 = mvcWeights2 * deformedCage2.m_V;
+    deformedCage2.loadCage();
+    controlCage2.loadCage();
+
+    // load the model 3
+    TargetModel targetModel3 = TargetModel(modelPath3);
+    ControlCage controlCage3 = ControlCage(cagePath3);
+    // Calculate the weight in advance to exoedite the computation
+    mvcWeights3 = computeWeight(targetModel3.m_V, controlCage3.m_V, controlCage3.m_F);
+    ControlCage deformedCage3 = ControlCage(dfPath3);
+    Eigen::MatrixXd updatedVertex3= mvcWeights3 * deformedCage3.m_V;
+    deformedCage3.loadCage();
+    controlCage3.loadCage();
+
+
     // Init the viewer
     igl::opengl::glfw::Viewer viewer;
     // Attach a menu plugin
@@ -298,8 +319,9 @@ int main(int argc, char *argv[]) {
     viewer.plugins.push_back(&menu);
     menu.callback_draw_viewer_menu = [&]() {
         // Add new group
-        if (ImGui::CollapsingHeader("Deformation 1", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("Deformations", ImGuiTreeNodeFlags_DefaultOpen)) {
             // Add buttons
+
             if (ImGui::Button("Show/Reset Model", ImVec2(-1, 0))) {
 
                 viewer.data().clear();
@@ -333,6 +355,75 @@ int main(int argc, char *argv[]) {
 
         }
 
+        // Add new group
+        if (ImGui::CollapsingHeader("Deformation 2", ImGuiTreeNodeFlags_DefaultOpen)) {
+            // Add buttons
+            if (ImGui::Button("Show/Reset Model2", ImVec2(-2, 0))) {
+                viewer.data().clear();
+                viewer.data().set_mesh(targetModel2.m_V, targetModel2.m_F);
+                viewer.core.align_camera_center(targetModel2.m_V, targetModel2.m_F);
+            }
+
+            if (ImGui::Button("Show Control Cage2", ImVec2(-2, 0))) {
+
+
+                viewer.data().add_edges(controlCage2.headPoints, controlCage2.tailPoints, Eigen::RowVector3d(0, 1, 1));
+            }
+
+            // Add buttons
+            if (ImGui::Button("Show Deformed Cage2", ImVec2(-2, 0))) {
+                viewer.data().add_edges(deformedCage2.headPoints, deformedCage2.tailPoints, Eigen::RowVector3d(1, 0.5, 0.5));
+            }
+            if (ImGui::Button("Deform Model2", ImVec2(-2, 0))) {
+                viewer.data().clear();
+                viewer.data().add_edges(deformedCage2.headPoints, deformedCage2.tailPoints, Eigen::RowVector3d(1,0.5,0.5));
+                viewer.data().set_mesh(updatedVertex2, targetModel2.m_F);
+                viewer.core.align_camera_center(updatedVertex2, targetModel2.m_F);
+            }
+
+            if (ImGui::Button("Collapse Deformed Cage2", ImVec2(-2, 0))){
+                viewer.data().clear();
+                viewer.data().set_mesh(updatedVertex2, targetModel2.m_F);
+                viewer.core.align_camera_center(updatedVertex2, targetModel2.m_F);
+            }
+
+
+        }
+        // Add new group
+        if (ImGui::CollapsingHeader("Deformation 3", ImGuiTreeNodeFlags_DefaultOpen)) {
+            // Add buttons
+            if (ImGui::Button("Show/Reset Model3", ImVec2(-3, 0))) {
+
+                viewer.data().clear();
+                viewer.data().set_mesh(targetModel3.m_V, targetModel3.m_F);
+                viewer.core.align_camera_center(targetModel3.m_V, targetModel3.m_F);
+            }
+
+            if (ImGui::Button("Show Control Cage3", ImVec2(-3, 0))) {
+
+
+                viewer.data().add_edges(controlCage3.headPoints, controlCage3.tailPoints, Eigen::RowVector3d(0, 1, 1));
+            }
+
+            // Add buttons
+            if (ImGui::Button("Show Deformed Cage3", ImVec2(-3, 0))) {
+                viewer.data().add_edges(deformedCage3.headPoints, deformedCage3.tailPoints, Eigen::RowVector3d(1, 0.5, 0.5));
+            }
+            if (ImGui::Button("Deform Model3", ImVec2(-3, 0))) {
+                viewer.data().clear();
+                viewer.data().add_edges(deformedCage3.headPoints, deformedCage3.tailPoints, Eigen::RowVector3d(1,0.5,0.5));
+                viewer.data().set_mesh(updatedVertex3, targetModel3.m_F);
+                viewer.core.align_camera_center(updatedVertex3, targetModel3.m_F);
+            }
+
+            if (ImGui::Button("Collapse Deformed Cage3", ImVec2(-3, 0))){
+                viewer.data().clear();
+                viewer.data().set_mesh(updatedVertex3, targetModel3.m_F);
+                viewer.core.align_camera_center(updatedVertex3, targetModel3.m_F);
+            }
+
+
+        }
     };
 
     // registered a event handler
