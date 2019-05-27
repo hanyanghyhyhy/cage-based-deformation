@@ -17,7 +17,7 @@
 #include <igl/edges.h>
 #include <igl/file_exists.h>
 
-double EPSILON = 1.0e-20;
+double EPSILON = 1.0e-19;
 Eigen::MatrixXd headPointsCage, trailPointsCage, headPointsCageDF, trailPointsCageDF;
 Eigen::MatrixXd mvcWeights1;
 
@@ -277,6 +277,12 @@ int main(int argc, char *argv[]) {
     std::string modelPath3 = "../meshes/cactus.obj";
     std::string cagePath3 = "../meshes/cactus_cage.onj";
 
+    // load the model
+    TargetModel targetModel1 = TargetModel(modelPath1);
+    ControlCage controlCage1 = ControlCage(cagePath1);
+    // Calculate the weight in advance to exoedite the computation
+    mvcWeights1 = computeWeight(targetModel1.m_V, controlCage1.m_V, controlCage1.m_F);
+
 
 
 
@@ -293,12 +299,7 @@ int main(int argc, char *argv[]) {
             if (ImGui::Button("Show/Reset Model", ImVec2(-1, 0))) {
 
                 viewer.data().clear();
-                // load the model
-                TargetModel targetModel1 = TargetModel(modelPath1);
-                ControlCage controlCage1 = ControlCage(cagePath1);
-                // Calculate the weight in advance to exoedite the computation
-                mvcWeights1 = computeWeight(targetModel1.m_V, controlCage1.m_V, controlCage1.m_F);
-                TargetModel targetModel1 = TargetModel(modelPath);
+
                 viewer.data().set_mesh(targetModel1.m_V, targetModel1.m_F);
                 viewer.core.align_camera_center(targetModel1.m_V, targetModel1.m_F);
             }
@@ -318,9 +319,9 @@ int main(int argc, char *argv[]) {
             if (ImGui::Button("Deform Model", ImVec2(-1, 0))) {
                 ControlCage deformedCage1 = ControlCage(dfPath1);
                 deformedCage1.loadCage(headPointsCageDF, trailPointsCageDF);
-                Eigen::MatrixXd updatedVertex = mvcWeights * deformedCage1.m_V;
-                viewer.data().set_mesh(updated_ertex, targetModel.m_F);
-                viewer.core.align_camera_center(updatedVertex, targetModel.m_F);
+                Eigen::MatrixXd updatedVertex = mvcWeights1 * deformedCage1.m_V;
+                viewer.data().set_mesh(updatedVertex, targetModel1.m_F);
+                viewer.core.align_camera_center(updatedVertex, targetModel1.m_F);
             }
 
 
