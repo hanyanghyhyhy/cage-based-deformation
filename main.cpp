@@ -5,6 +5,7 @@
 #include <random>
 #include <chrono>
 #include <igl/readOBJ.h>
+#include <igl/readOFF.h>
 #include <igl/opengl/glfw/Viewer.h>
 #include <igl/adjacency_list.h>
 #include <igl/edge_lengths.h>
@@ -18,10 +19,11 @@
 #include <igl/file_exists.h>
 
 double EPSILON = 1.0e-19;
-Eigen::MatrixXd headPointsCage, trailPointsCage, headPointsCageDF, trailPointsCageDF;
+//Eigen::MatrixXd headPointsCage, tailPointsCage, headPointsCageDF, tailPointsCageDF;
 Eigen::MatrixXd mvcWeights1;
+Eigen::MatrixXd mvcWeights2;
 
-Eigen::MatrixXd operator*(Eigen::MatrixXd weights, Eigen::MatrixXd cageVetex);
+Eigen::MatrixXd operator*(const Eigen::MatrixXd & weights, Eigen::MatrixXd & cageVetex);
 
 inline double computeDeterminant(Eigen::MatrixXd u0, Eigen::MatrixXd u1, Eigen::MatrixXd u2) {
     double determinant = u0(0) * (u1(1) * u2(2) - u2(1) * u1(2))
@@ -41,8 +43,10 @@ public:
             exit(1);
         }
 
-        igl::readOBJ(fileName, m_V, m_F);
+//        igl::readOBJ(fileName, m_V, m_F);
+          igl::readOFF(fileName, m_V, m_F);
         // calculate VN
+
         igl::per_face_normals(m_V, m_F, m_FN);
     }
 
@@ -87,27 +91,27 @@ public:
             exit(1);
         }
 
-        igl::readOBJ(fileName, m_V, m_F);
+//        igl::readOBJ(fileName, m_V, m_F);
+        igl::readOFF(fileName, m_V, m_F);
     }
 
     ~ControlCage() {}
 
-    Eigen::MatrixXd m_V;
+    Eigen::MatrixXd m_V, headPoints, tailPoints;
     Eigen::MatrixXi m_F;
-
-    void loadCage(Eigen::MatrixXd &headPoints, Eigen::MatrixXd &trailPoints) {
+    void loadCage() {
         // The edges function returns the head and the trail position of the edges
         // use the position vectors to retrieve the edges of the cage
-        // store them in headPoints and trailPoints.
+        // store them in headPoints and tailPoints.
 
         Eigen::MatrixXi Edges;
         igl::edges(m_F, Edges);
         headPoints = Eigen::MatrixXd(Edges.rows(), 3);
-        trailPoints = Eigen::MatrixXd(Edges.rows(), 3);
+        tailPoints = Eigen::MatrixXd(Edges.rows(), 3);
 
         for (int i = 0; i < Edges.rows(); i++) {
             headPoints.row(i) = m_V.row(Edges(i, 0));
-            trailPoints.row(i) = m_V.row(Edges(i, 1));
+            tailPoints.row(i) = m_V.row(Edges(i, 1));
         }
     }
 
@@ -250,7 +254,7 @@ Eigen::MatrixXd updateDeformedVetex(Eigen::MatrixXd weights, Eigen::MatrixXd cag
 }
 
 // Use operator overload
-Eigen::MatrixXd operator*(Eigen::MatrixXd weights, Eigen::MatrixXd cageVetex) {
+Eigen::MatrixXd operator*(const Eigen::MatrixXd &weights, Eigen::MatrixXd &cageVetex) {
     Eigen::MatrixXd updatedVetex = Eigen::MatrixXd::Zero(weights.rows(), 3);
 
     for (int i = 0; i < weights.rows(); i++) {
@@ -268,9 +272,9 @@ Eigen::MatrixXd operator*(Eigen::MatrixXd weights, Eigen::MatrixXd cageVetex) {
 
 int main(int argc, char *argv[]) {
 
-    std::string modelPath1 = "../meshes/Beast.obj";
-    std::string cagePath1 = "../meshes/Beast_Cage.obj";
-    std::string dfPath1 = "../meshes/Beast_Cage_Deformed.obj";
+    std::string modelPath1 = "../meshes/Beast.off";
+    std::string cagePath1 = "../meshes/Beast_Cage.off";
+    std::string dfPath1 = "../meshes/Beast_Cage_Deformed.off";
     std::string modePath2 = "../meshes/Bench.obj";
     std::string cagePath2 = "../meshes/Bench_Cage.obj";
     std::string dfPath2 = "../meshes/Bench_Cage_deformed.obj";
@@ -282,10 +286,10 @@ int main(int argc, char *argv[]) {
     ControlCage controlCage1 = ControlCage(cagePath1);
     // Calculate the weight in advance to exoedite the computation
     mvcWeights1 = computeWeight(targetModel1.m_V, controlCage1.m_V, controlCage1.m_F);
-
-
-
-
+    ControlCage deformedCage1 = ControlCage(dfPath1);
+    Eigen::MatrixXd updatedVertex1 = mvcWeights1 * deformedCage1.m_V;
+    deformedCage1.loadCage();
+    controlCage1.loadCage();
 
     // Init the viewer
     igl::opengl::glfw::Viewer viewer;
@@ -299,29 +303,31 @@ int main(int argc, char *argv[]) {
             if (ImGui::Button("Show/Reset Model", ImVec2(-1, 0))) {
 
                 viewer.data().clear();
-
                 viewer.data().set_mesh(targetModel1.m_V, targetModel1.m_F);
                 viewer.core.align_camera_center(targetModel1.m_V, targetModel1.m_F);
             }
 
             if (ImGui::Button("Show Control Cage", ImVec2(-1, 0))) {
 
-                controlCage1.loadCage(headPointsCage, trailPointsCage);
-                viewer.data().add_edges(headPointsCage, trailPointsCage, Eigen::RowVector3d(0, 1, 1));
+
+                viewer.data().add_edges(controlCage1.headPoints, controlCage1.tailPoints, Eigen::RowVector3d(0, 1, 1));
             }
 
             // Add buttons
             if (ImGui::Button("Show Deformed Cage", ImVec2(-1, 0))) {
-                ControlCage deformedCage1 = ControlCage(dfPath1);
-                deformedCage1.loadCage(headPointsCageDF, trailPointsCageDF);
-                viewer.data().add_edges(headPointsCageDF, trailPointsCageDF, Eigen::RowVector3d(1, 0.5, 0.5));
+                viewer.data().add_edges(deformedCage1.headPoints, deformedCage1.tailPoints, Eigen::RowVector3d(1, 0.5, 0.5));
             }
             if (ImGui::Button("Deform Model", ImVec2(-1, 0))) {
-                ControlCage deformedCage1 = ControlCage(dfPath1);
-                deformedCage1.loadCage(headPointsCageDF, trailPointsCageDF);
-                Eigen::MatrixXd updatedVertex = mvcWeights1 * deformedCage1.m_V;
-                viewer.data().set_mesh(updatedVertex, targetModel1.m_F);
-                viewer.core.align_camera_center(updatedVertex, targetModel1.m_F);
+                viewer.data().clear();
+                viewer.data().add_edges(deformedCage1.headPoints, deformedCage1.tailPoints, Eigen::RowVector3d(1,0.5,0.5));
+                viewer.data().set_mesh(updatedVertex1, targetModel1.m_F);
+                viewer.core.align_camera_center(updatedVertex1, targetModel1.m_F);
+            }
+
+            if (ImGui::Button("Collapse Deformed Cage", ImVec2(-1, 0))){
+                viewer.data().clear();
+                viewer.data().set_mesh(updatedVertex1, targetModel1.m_F);
+                viewer.core.align_camera_center(updatedVertex1, targetModel1.m_F);
             }
 
 
