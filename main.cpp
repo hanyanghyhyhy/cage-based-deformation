@@ -319,34 +319,34 @@ int main(int argc, char *argv[]) {
     viewer.plugins.push_back(&menu);
     menu.callback_draw_viewer_menu = [&]() {
         // Add new group
-        if (ImGui::CollapsingHeader("Deformations", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (ImGui::CollapsingHeader("Deformation1", ImGuiTreeNodeFlags_DefaultOpen)) {
             // Add buttons
 
-            if (ImGui::Button("Show/Reset Model", ImVec2(-1, 0))) {
+            if (ImGui::Button("Show/Reset Model1", ImVec2(-1, 0))) {
 
                 viewer.data().clear();
                 viewer.data().set_mesh(targetModel1.m_V, targetModel1.m_F);
                 viewer.core.align_camera_center(targetModel1.m_V, targetModel1.m_F);
             }
 
-            if (ImGui::Button("Show Control Cage", ImVec2(-1, 0))) {
+            if (ImGui::Button("Show Control Cage1", ImVec2(-1, 0))) {
 
 
                 viewer.data().add_edges(controlCage1.headPoints, controlCage1.tailPoints, Eigen::RowVector3d(0, 1, 1));
             }
 
             // Add buttons
-            if (ImGui::Button("Show Deformed Cage", ImVec2(-1, 0))) {
+            if (ImGui::Button("Show Deformed Cage1", ImVec2(-1, 0))) {
                 viewer.data().add_edges(deformedCage1.headPoints, deformedCage1.tailPoints, Eigen::RowVector3d(1, 0.5, 0.5));
             }
-            if (ImGui::Button("Deform Model", ImVec2(-1, 0))) {
+            if (ImGui::Button("Deform Model1", ImVec2(-1, 0))) {
                 viewer.data().clear();
                 viewer.data().add_edges(deformedCage1.headPoints, deformedCage1.tailPoints, Eigen::RowVector3d(1,0.5,0.5));
                 viewer.data().set_mesh(updatedVertex1, targetModel1.m_F);
                 viewer.core.align_camera_center(updatedVertex1, targetModel1.m_F);
             }
 
-            if (ImGui::Button("Collapse Deformed Cage", ImVec2(-1, 0))){
+            if (ImGui::Button("Collapse Deformed Cage1", ImVec2(-1, 0))){
                 viewer.data().clear();
                 viewer.data().set_mesh(updatedVertex1, targetModel1.m_F);
                 viewer.core.align_camera_center(updatedVertex1, targetModel1.m_F);
