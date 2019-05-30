@@ -1,1 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/c++   -fPIC -g -Wl,-search_paths_first -Wl,-headerpad_max_install_names  CMakeFiles/cage_based_deformation_bin.dir/main.cpp.o  -o cage_based_deformation_bin -framework OpenGL imgui/libimgui.a glfw/src/libglfw3.a -framework Cocoa -framework IOKit -framework CoreFoundation -framework CoreVideo glad/libglad.a 
