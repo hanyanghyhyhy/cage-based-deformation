@@ -14,9 +14,7 @@ find_package(LIBIGL REQUIRED QUIET)
 #file(GLOB SRC_FILES *.cpp)
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(SRC_FILES ${PROJECT_SOURCE_DIR}/main.cpp
-              ${PROJECT_SOURCE_DIR}/nanoflann.hpp)
-              
-              
+set(SRC_FILES ${PROJECT_SOURCE_DIR}/main.cpp)
+
 add_executable(${PROJECT_NAME}_bin ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME}_bin igl::core igl::opengl_glfw igl::opengl_glfw_imgui)
